@@ -31,14 +31,11 @@ if (!global.mongoose) {
 }
 
 /**
- * Ensure that the MongoDB connection string is defined at runtime.
- * Throwing early makes configuration issues obvious during deployment.
+ * NOTE: Do not validate `MONGODB_URI` at import time. That would cause
+ * builds to fail when environment variables are not available during
+ * static analysis. Validation is performed at runtime inside
+ * `connectToDatabase()` so callers receive a clear runtime error.
  */
-const MONGODB_URI: string = process.env.MONGODB_URI ?? '';
-
-if (!MONGODB_URI) {
-  throw new Error('Please define the MONGODB_URI environment variable in your environment.');
-}
 
 /**
  * Connect to MongoDB using Mongoose, reusing the existing connection if available.
@@ -54,6 +51,12 @@ export async function connectToDatabase(): Promise<Connection> {
 
   // If a connection promise does not exist yet, create one and store it.
   if (!cached.promise) {
+    const MONGODB_URI: string = process.env.MONGODB_URI ?? '';
+
+    if (!MONGODB_URI) {
+      throw new Error('Please define the MONGODB_URI environment variable in your environment.');
+    }
+
     const mongooseOptions = {
       bufferCommands: false,
     } satisfies Parameters<typeof mongoose.connect>[1];
